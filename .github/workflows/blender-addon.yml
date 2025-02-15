@@ -1,0 +1,35 @@
+name: Release Blender Addon
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'version'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:        
+      - name: Build addon
+        uses: blenderkit/blender-addon-build@main
+        with:
+          name: ${{ github.event.repository.name }}
+          exclude-files: ".git;.github;README.md;.gitignore;LICENSE;pyproject.toml;setup.py"
+
+  Release:
+    runs-on: ubuntu-latest
+    needs: Build
+    steps:
+      - name: Release addon
+        uses: jasongzy/blender-addon-release@main
+        with:
+          artifact_name: ${{ github.event.repository.name }}
+          release_name: ${{ github.event.repository.name }}
+          version: ${{github.event.inputs.version}}
+          addon_folder_name: ${{ github.event.repository.name }}
+          draft: false
