@@ -283,7 +283,10 @@ class BUTransferVertexGroups(bpy.types.Operator):
             layers_select_dst="NAME",
             mix_mode="REPLACE",
         )
+
         update(context)
+        context.view_layer.objects.active = target_mesh
+        select_objs([target_mesh], deselect_first=True)
         self.report({"INFO"}, f"Transferred all vertex groups from `{source_mesh.name}` to `{target_mesh.name}`")
         return {"FINISHED"}
 
@@ -361,6 +364,10 @@ class BUCopyPose(bpy.types.Operator):
             for b in target_armature.data.bones:
                 b.select = True
             bpy.ops.pose.paste(flipped=False)
+
+        update(context)
+        context.view_layer.objects.active = target_armature
+        select_objs([target_armature], deselect_first=True)
         self.report({"INFO"}, f"Copied pose from `{source_armature.name}` to `{target_armature.name}`")
         return {"FINISHED"}
 
