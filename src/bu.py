@@ -196,9 +196,9 @@ def get_keyframes(obj_list: "list[Object]" = None, mute_global_anim=False) -> "l
                     x = math.ceil(x)
                     if x not in keyframes:
                         keyframes.append(x)
-        shapekeys = obj.data.shape_keys if hasattr(obj.data, "shape_keys") else None
-        if shapekeys:
-            action = shapekeys.animation_data.action if shapekeys.animation_data else None
+        shape_keys = obj.data.shape_keys if hasattr(obj.data, "shape_keys") else None
+        if shape_keys:
+            action = shape_keys.animation_data.action if shape_keys.animation_data else None
             if action:
                 for fcurve in action.fcurves:
                     if fcurve.data_path.startswith("key_blocks"):
@@ -509,10 +509,101 @@ def get_pose_vertices(mesh_obj_list: "list[Object]"):
     return verts_deformed_all
 
 
+def get_shape_keys(mesh_obj: Object, ignore_basis=True, ignore_empty=False):
+    if mesh_obj is None:
+        return None
+    assert mesh_obj.type == "MESH"
+    mesh: Mesh = mesh_obj.data
+    shape_keys: dict[str, np.ndarray] = {}
+    if not mesh.shape_keys:
+        return shape_keys
+    key_blocks = mesh.shape_keys.key_blocks
+    num_vertices = len(mesh.vertices)
+
+    basis_kb = key_blocks[0]
+    assert all(
+        kb.relative_key == basis_kb for kb in key_blocks
+    ), "Not all shape keys are relative to the basis shape key"
+    basis_co = np.empty(num_vertices * 3, dtype=np.float64)
+    basis_kb.points.foreach_get("co", basis_co)
+    basis_co = basis_co.reshape(num_vertices, 3)
+
+    for i, kb in enumerate(key_blocks):
+        co = np.empty(num_vertices * 3, dtype=np.float64)
+        kb.points.foreach_get("co", co)
+        co = co.reshape(num_vertices, 3)
+        delta = co - basis_co
+        if ignore_basis and i == 0:
+            continue
+        if ignore_empty and i != 0 and np.abs(delta).max() < 1e-6:
+            continue
+        shape_keys[kb.name] = delta
+
+    return shape_keys
+
+
+def set_shape_keys(mesh_obj: Object, shape_keys: dict[str, np.ndarray], clear_existing=True):
+    assert mesh_obj and mesh_obj.type == "MESH"
+    mesh: Mesh = mesh_obj.data
+    n_vertices = shape_keys[next(iter(shape_keys))].shape[0]
+    assert (
+        len(mesh.vertices) == n_vertices
+    ), f"Vertex number mismatch: {n_vertices} (from input) v.s. {len(mesh.vertices)} (from mesh)"
+
+    if mesh.shape_keys and clear_existing:
+        for kb in mesh.shape_keys.key_blocks[:][::-1]:
+            mesh_obj.shape_key_remove(kb)
+    if not mesh.shape_keys:
+        mesh_obj.shape_key_add(name="Basis", from_mix=False)
+    basis_kb = mesh.shape_keys.key_blocks[0]
+
+    basis_co = np.empty(n_vertices * 3, dtype=np.float64)
+    basis_kb.points.foreach_get("co", basis_co)
+    basis_co = basis_co.reshape(n_vertices, 3)
+
+    for name, delta in shape_keys.items():
+        if name in mesh.shape_keys.key_blocks:
+            kb = mesh.shape_keys.key_blocks[name]
+        else:
+            kb = mesh_obj.shape_key_add(name=name)
+
+        kb.relative_key = basis_kb
+        new_co = basis_co + delta
+        new_co_flat = new_co.ravel()
+        kb.points.foreach_set("co", new_co_flat)
+        kb.points.update()
+
+    mesh_obj.show_only_shape_key = False
+    mesh.update()
+    return mesh
+
+
+def transfer_all_shape_keys(mesh_src: Object, mesh_tgt: Object, clear_existing=True):
+    assert mesh_src and mesh_src.type == "MESH"
+    assert mesh_tgt and mesh_tgt.type == "MESH"
+    if mesh_src.data.shape_keys is None:
+        raise ValueError("Source object has no shape keys!")
+    if mesh_tgt.data.shape_keys and clear_existing:
+        for kb in mesh_tgt.data.shape_keys.key_blocks[:][::-1]:
+            mesh_tgt.shape_key_remove(kb)
+    bpy.context.view_layer.objects.active = mesh_tgt
+    with Select(mesh_src):
+        for idx in range(1, len(mesh_src.data.shape_keys.key_blocks)):
+            mesh_src.active_shape_key_index = idx
+            print(f"Copying Shape Key: {mesh_src.active_shape_key.name}")
+            bpy.ops.object.shape_key_transfer()
+    mesh_tgt.data.update()
+    mesh_tgt.show_only_shape_key = False
+    return mesh_tgt
+
+
 def set_action(armature_obj: Object, action: Action):
     if not armature_obj.animation_data:
         armature_obj.animation_data_create()
     armature_obj.animation_data.action = action
+    if hasattr(armature_obj.animation_data, "action_slot"):
+        # For Blender 4.4 and later
+        armature_obj.animation_data.action_slot = armature_obj.animation_data.action_suitable_slots[0]
     return armature_obj
 
 
