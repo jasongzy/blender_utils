@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Blender Utils",
     "author": "jasongzy",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (4, 2, 0),
     "location": "",
     "description": "Useful helpers",
