@@ -1,6 +1,6 @@
 import bpy
 
-from .bu import remove_all, remove_collection, remove_empty, remove_unused_actions, set_rest_bones, update
+from .bu import Mode, remove_all, remove_collection, remove_empty, remove_unused_actions, set_rest_bones, update
 
 
 class BUShowImport(bpy.types.Operator):
@@ -237,11 +237,30 @@ class BUToggleRest(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BUResetPose(bpy.types.Operator):
+    """Reset pose to rest position (select the target Armature first)"""
+
+    bl_idname = "bu.reset_pose"
+    bl_label = "Reset Pose to Rest"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None and context.object.type == "ARMATURE" and context.area.ui_type == "VIEW_3D"
+
+    def execute(self, context):
+        with Mode("POSE", context.object):
+            for b in context.object.data.bones:
+                b.select = True
+            bpy.ops.pose.transforms_clear()
+        return {"FINISHED"}
+
+
 class BUResetRest(bpy.types.Operator):
     """Apply current pose as rest pose (select the target Armature first)"""
 
     bl_idname = "bu.reset_rest"
-    bl_label = "Reset Rest Pose"
+    bl_label = "Set Current Pose as Rest"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -292,6 +311,7 @@ def register():
     bpy.utils.register_class(BUToggleWeightMode)
     bpy.utils.register_class(BUToggleScreenshotMode)
     bpy.utils.register_class(BUToggleRest)
+    bpy.utils.register_class(BUResetPose)
     bpy.utils.register_class(BUResetRest)
     bpy.utils.register_class(BURetarget)
 
@@ -308,5 +328,6 @@ def unregister():
     bpy.utils.unregister_class(BUToggleWeightMode)
     bpy.utils.unregister_class(BUToggleScreenshotMode)
     bpy.utils.unregister_class(BUToggleRest)
+    bpy.utils.unregister_class(BUResetPose)
     bpy.utils.unregister_class(BUResetRest)
     bpy.utils.unregister_class(BURetarget)

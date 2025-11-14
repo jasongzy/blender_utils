@@ -72,9 +72,11 @@ class PosePanel(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.operator("bu.toggle_rest", icon="OUTLINER_DATA_ARMATURE")
+        row.operator("bu.toggle_rest", icon="ARMATURE_DATA")
         row = layout.row()
-        row.operator("bu.reset_rest", icon="OUTLINER_OB_ARMATURE")
+        row.operator("bu.reset_pose", icon="OUTLINER_OB_ARMATURE")
+        row = layout.row()
+        row.operator("bu.reset_rest", icon="MOD_ARMATURE")
 
         layout.separator(type="LINE")
 
