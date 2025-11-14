@@ -1,6 +1,15 @@
 import bpy
 
-from .bu import Mode, remove_all, remove_collection, remove_empty, remove_unused_actions, set_rest_bones, update
+from .bu import (
+    Mode,
+    get_all_armature_obj,
+    remove_all,
+    remove_collection,
+    remove_empty,
+    remove_unused_actions,
+    set_rest_bones,
+    update,
+)
 
 
 class BUShowImport(bpy.types.Operator):
@@ -256,6 +265,41 @@ class BUResetPose(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BUCopyPose(bpy.types.Operator):
+    """Copy pose from one Armature to another"""
+
+    bl_idname = "bu.copy_pose"
+    bl_label = "Copy and Paste Pose"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.object is not None
+            and context.object.type == "ARMATURE"
+            and context.area.ui_type == "VIEW_3D"
+            and len(get_all_armature_obj(context.selected_objects)) == 2
+        )
+
+    def execute(self, context):
+        target_armature = context.object
+        selected_armatures = [
+            obj for obj in context.selected_objects if obj.type == "ARMATURE" and obj != target_armature
+        ]
+        assert len(selected_armatures) == 1, "Please select exactly two Armatures"
+        source_armature = selected_armatures[0]
+
+        with Mode("POSE", source_armature):
+            for b in source_armature.data.bones:
+                b.select = True
+            bpy.ops.pose.copy()
+        with Mode("POSE", target_armature):
+            for b in target_armature.data.bones:
+                b.select = True
+            bpy.ops.pose.paste(flipped=False)
+        return {"FINISHED"}
+
+
 class BUResetRest(bpy.types.Operator):
     """Apply current pose as rest pose (select the target Armature first)"""
 
@@ -312,6 +356,7 @@ def register():
     bpy.utils.register_class(BUToggleScreenshotMode)
     bpy.utils.register_class(BUToggleRest)
     bpy.utils.register_class(BUResetPose)
+    bpy.utils.register_class(BUCopyPose)
     bpy.utils.register_class(BUResetRest)
     bpy.utils.register_class(BURetarget)
 
@@ -329,5 +374,6 @@ def unregister():
     bpy.utils.unregister_class(BUToggleScreenshotMode)
     bpy.utils.unregister_class(BUToggleRest)
     bpy.utils.unregister_class(BUResetPose)
+    bpy.utils.unregister_class(BUCopyPose)
     bpy.utils.unregister_class(BUResetRest)
     bpy.utils.unregister_class(BURetarget)

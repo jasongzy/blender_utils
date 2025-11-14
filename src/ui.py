@@ -76,6 +76,8 @@ class PosePanel(bpy.types.Panel):
         row = layout.row()
         row.operator("bu.reset_pose", icon="OUTLINER_OB_ARMATURE")
         row = layout.row()
+        row.operator("bu.copy_pose", icon="PASTEDOWN")
+        row = layout.row()
         row.operator("bu.reset_rest", icon="MOD_ARMATURE")
 
         layout.separator(type="LINE")
