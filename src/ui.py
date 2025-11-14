@@ -56,6 +56,26 @@ class VisPanel(bpy.types.Panel):
         row.operator("bu.toggle_screenshot", icon="RESTRICT_RENDER_OFF")
 
 
+class MeshPanel(bpy.types.Panel):
+    bl_label = "Mesh Utils"
+    bl_idname = "BU_PT_mesh"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_context = ""
+    bl_category = "Utils"
+    bl_order = 2
+    # bl_options = {"HIDE_HEADER"}
+    bl_ui_units_x = 0
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        row.operator("bu.clear_all_vgroups", icon="VERTEXSEL")
+        row = layout.row()
+        row.operator("bu.transfer_vgroups", icon="AUTOMERGE_ON")
+
+
 class PosePanel(bpy.types.Panel):
     bl_label = "Pose Utils"
     bl_idname = "BU_PT_pose"
@@ -63,7 +83,7 @@ class PosePanel(bpy.types.Panel):
     bl_region_type = "UI"
     bl_context = ""
     bl_category = "Utils"
-    bl_order = 2
+    bl_order = 3
     # bl_options = {"HIDE_HEADER"}
     bl_ui_units_x = 0
 
@@ -98,6 +118,7 @@ class PosePanel(bpy.types.Panel):
 def register():
     bpy.utils.register_class(BasicPanel)
     bpy.utils.register_class(VisPanel)
+    bpy.utils.register_class(MeshPanel)
     bpy.utils.register_class(PosePanel)
     bpy.types.WindowManager.bu_retarget_src = PointerProperty(
         type=bpy.types.Object,
@@ -126,6 +147,7 @@ def register():
 def unregister():
     bpy.utils.unregister_class(BasicPanel)
     bpy.utils.unregister_class(VisPanel)
+    bpy.utils.unregister_class(MeshPanel)
     bpy.utils.unregister_class(PosePanel)
     del bpy.types.WindowManager.bu_retarget_src
     del bpy.types.WindowManager.bu_retarget_tgt

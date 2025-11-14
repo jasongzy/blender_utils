@@ -3,10 +3,12 @@ import bpy
 from .bu import (
     Mode,
     get_all_armature_obj,
+    get_all_mesh_obj,
     remove_all,
     remove_collection,
     remove_empty,
     remove_unused_actions,
+    select_objs,
     set_rest_bones,
     update,
 )
@@ -224,6 +226,65 @@ class BUToggleScreenshotMode(bpy.types.Operator):
             context.space_data.shading.background_color = (0.05, 0.05, 0.05)
             context.space_data.show_object_viewport_light = True
             context.space_data.show_object_viewport_camera = True
+        return {"FINISHED"}
+
+
+class BUClearAllVertexGroups(bpy.types.Operator):
+    """Clear all vertex groups (select the target Mesh first)"""
+
+    bl_idname = "bu.clear_all_vgroups"
+    bl_label = "Clear All Vertex Groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None and context.object.type == "MESH" and context.area.ui_type == "VIEW_3D"
+
+    def execute(self, context):
+        context.object.vertex_groups.clear()
+        update(context)
+        self.report({"INFO"}, f"Cleared all vertex groups from `{context.object.name}`")
+        return {"FINISHED"}
+
+
+class BUTransferVertexGroups(bpy.types.Operator):
+    """Transfer vertex groups and weights from one Mesh to another (clear existing vertex groups first)"""
+
+    bl_idname = "bu.transfer_vgroups"
+    bl_label = "Transfer Vertex Groups"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.object is not None
+            and context.object.type == "MESH"
+            and context.area.ui_type == "VIEW_3D"
+            and len(get_all_mesh_obj(context.selected_objects)) == 2
+        )
+
+    def execute(self, context):
+        target_mesh = context.object
+        selected_meshes = [obj for obj in context.selected_objects if obj.type == "MESH" and obj != target_mesh]
+        assert len(selected_meshes) == 1, "Please select exactly two Meshes"
+        source_mesh = selected_meshes[0]
+        context.view_layer.objects.active = source_mesh
+        select_objs([target_mesh], deselect_first=True)
+
+        target_mesh.vertex_groups.clear()
+        bpy.ops.object.data_transfer(
+            use_reverse_transfer=False,
+            data_type="VGROUP_WEIGHTS",
+            use_create=True,
+            vert_mapping="NEAREST",
+            use_auto_transform=False,
+            use_object_transform=False,
+            layers_select_src="ALL",
+            layers_select_dst="NAME",
+            mix_mode="REPLACE",
+        )
+        update(context)
+        self.report({"INFO"}, f"Transferred all vertex groups from `{source_mesh.name}` to `{target_mesh.name}`")
         return {"FINISHED"}
 
 
