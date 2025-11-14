@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="blender_utils",
-    version="1.1.0",
+    version="1.2.0",
     author="jasongzy",
     author_email="jasongzy@gmail.com",
     description="blender_utils",

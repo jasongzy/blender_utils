@@ -106,6 +106,16 @@ class PosePanel(bpy.types.Panel):
 
         layout.separator(type="LINE")
 
+        layout.label(text="Batch Rename Bones")
+        row = layout.row()
+        row.prop(wm, "bu_rename_text_block", text="")
+        row = layout.row()
+        row.operator("bu.load_bones_to_text", icon="FILE_TEXT")
+        row = layout.row()
+        row.operator("bu.rename_bones_from_text", icon="BONE_DATA")
+
+        layout.separator(type="LINE")
+
         layout.label(text="Retarget Shortcut")
         row = layout.row()
         row.prop(wm, "bu_retarget_src", text="Source", icon="ARMATURE_DATA")
@@ -124,6 +134,11 @@ def register():
     bpy.utils.register_class(VisPanel)
     bpy.utils.register_class(MeshPanel)
     bpy.utils.register_class(PosePanel)
+    bpy.types.WindowManager.bu_rename_text_block = PointerProperty(
+        type=bpy.types.Text,
+        name="Bone Names Text",
+        description="Text block to use for batch renaming bones",
+    )
     bpy.types.WindowManager.bu_retarget_src = PointerProperty(
         type=bpy.types.Object,
         name="Source Armature",
@@ -153,6 +168,7 @@ def unregister():
     bpy.utils.unregister_class(VisPanel)
     bpy.utils.unregister_class(MeshPanel)
     bpy.utils.unregister_class(PosePanel)
+    del bpy.types.WindowManager.bu_rename_text_block
     del bpy.types.WindowManager.bu_retarget_src
     del bpy.types.WindowManager.bu_retarget_tgt
     del bpy.types.WindowManager.bu_retarget_root

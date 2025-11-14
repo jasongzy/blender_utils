@@ -441,6 +441,87 @@ class BUResetRest(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BULoadBonesToText(bpy.types.Operator):
+    """Load bone names from the active Armature into the selected Text block"""
+
+    bl_idname = "bu.load_bones_to_text"
+    bl_label = "Load Bones to Text"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None and context.object.type == "ARMATURE"
+
+    def execute(self, context):
+        wm = context.window_manager
+        armature = context.object.data
+
+        text_block = wm.bu_rename_text_block
+        if text_block is None:
+            text_block = bpy.data.texts.new("bone_names.txt")
+            wm.bu_rename_text_block = text_block
+
+        text_block.clear()
+        names = [bone.name for bone in armature.bones]
+        text_block.write("\n".join(names))
+
+        self.report({"INFO"}, f"Loaded {len(names)} bone names into '{text_block.name}'")
+        return {"FINISHED"}
+
+
+class BURenameBonesFromText(bpy.types.Operator):
+    """Batch rename bones on the active Armature from the selected Text block"""
+
+    bl_idname = "bu.rename_bones_from_text"
+    bl_label = "Rename Bones from Text"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        wm = context.window_manager
+        return context.object is not None and context.object.type == "ARMATURE" and wm.bu_rename_text_block is not None
+
+    def execute(self, context):
+        wm = context.window_manager
+        armature_obj = context.object
+        armature = armature_obj.data
+        text_block = wm.bu_rename_text_block
+
+        bones = armature.bones
+        lines = [line.body for line in text_block.lines if line.body.strip()]
+        new_names = [name.strip() for name in lines]
+        if len(bones) != len(new_names):
+            self.report({"ERROR"}, f"Bone count ({len(bones)}) does not match line count ({len(new_names)})")
+            return {"CANCELLED"}
+        if len(set(new_names)) != len(new_names):
+            self.report({"ERROR"}, "New name list contains duplicates")
+            return {"CANCELLED"}
+
+        rename_map = {bones[i].name: new_names[i] for i in range(len(bones)) if bones[i].name != new_names[i]}
+        if not rename_map:
+            self.report({"INFO"}, "No bone names need to be changed")
+            return {"FINISHED"}
+
+        # Use a two-pass rename to avoid swap conflicts (A->B, B->A)
+        temp_suffix = ".bu-rename-temp"
+        with Mode("EDIT", armature_obj):
+            edit_bones = armature_obj.data.edit_bones
+            bones_to_rename = []
+            for old_name in rename_map:
+                if old_name in edit_bones:
+                    eb = edit_bones[old_name]
+                    temp_name = old_name + temp_suffix
+                    eb.name = temp_name
+                    bones_to_rename.append((eb, rename_map[old_name]))
+                else:
+                    self.report({"WARNING"}, f"Bone '{old_name}' not found in edit mode")
+            for eb, final_name in bones_to_rename:
+                eb.name = final_name
+
+        self.report({"INFO"}, f"Successfully renamed {len(rename_map)} bones")
+        return {"FINISHED"}
+
+
 class BURetarget(bpy.types.Operator):
     """Retarget selected armature (Auto-Rig Pro must be installed)"""
 
@@ -489,6 +570,8 @@ def register():
     bpy.utils.register_class(BUResetPose)
     bpy.utils.register_class(BUCopyPose)
     bpy.utils.register_class(BUResetRest)
+    bpy.utils.register_class(BULoadBonesToText)
+    bpy.utils.register_class(BURenameBonesFromText)
     bpy.utils.register_class(BURetarget)
 
 
@@ -514,4 +597,6 @@ def unregister():
     bpy.utils.unregister_class(BUResetPose)
     bpy.utils.unregister_class(BUCopyPose)
     bpy.utils.unregister_class(BUResetRest)
+    bpy.utils.unregister_class(BULoadBonesToText)
+    bpy.utils.unregister_class(BURenameBonesFromText)
     bpy.utils.unregister_class(BURetarget)
