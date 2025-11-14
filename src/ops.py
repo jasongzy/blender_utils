@@ -241,8 +241,10 @@ class BUToggleRest(bpy.types.Operator):
     def execute(self, context):
         if context.object.data.pose_position == "POSE":
             context.object.data.pose_position = "REST"
+            self.report({"INFO"}, f"Switched to rest position for `{context.object.name}`")
         elif context.object.data.pose_position == "REST":
             context.object.data.pose_position = "POSE"
+            self.report({"INFO"}, f"Switched to pose position for `{context.object.name}`")
         return {"FINISHED"}
 
 
@@ -262,6 +264,7 @@ class BUResetPose(bpy.types.Operator):
             for b in context.object.data.bones:
                 b.select = True
             bpy.ops.pose.transforms_clear()
+        self.report({"INFO"}, f"Reset pose to rest for `{context.object.name}`")
         return {"FINISHED"}
 
 
@@ -297,6 +300,7 @@ class BUCopyPose(bpy.types.Operator):
             for b in target_armature.data.bones:
                 b.select = True
             bpy.ops.pose.paste(flipped=False)
+        self.report({"INFO"}, f"Copied pose from `{source_armature.name}` to `{target_armature.name}`")
         return {"FINISHED"}
 
 
@@ -313,7 +317,7 @@ class BUResetRest(bpy.types.Operator):
 
     def execute(self, context):
         set_rest_bones(context.object, reset_as_rest=True)
-        self.report({"INFO"}, "Rest pose is reset")
+        self.report({"INFO"}, f"Set current pose as rest for `{context.object.name}`")
         return {"FINISHED"}
 
 
@@ -346,14 +350,19 @@ class BURetarget(bpy.types.Operator):
 def register():
     bpy.utils.register_class(BUShowImport)
     bpy.utils.register_class(BUUpdateView)
-    bpy.utils.register_class(BURemoveAll)
-    bpy.utils.register_class(BURemoveEmpty)
     bpy.utils.register_class(BURemoveUnusedActions)
+    bpy.utils.register_class(BURemoveEmpty)
+    bpy.utils.register_class(BURemoveAll)
+
     bpy.utils.register_class(BUToggleLang)
     bpy.utils.register_class(BUToggleTimelineAction)
     bpy.utils.register_class(BUToggleBoneMode)
     bpy.utils.register_class(BUToggleWeightMode)
     bpy.utils.register_class(BUToggleScreenshotMode)
+
+    bpy.utils.register_class(BUClearAllVertexGroups)
+    bpy.utils.register_class(BUTransferVertexGroups)
+
     bpy.utils.register_class(BUToggleRest)
     bpy.utils.register_class(BUResetPose)
     bpy.utils.register_class(BUCopyPose)
@@ -364,14 +373,19 @@ def register():
 def unregister():
     bpy.utils.unregister_class(BUShowImport)
     bpy.utils.unregister_class(BUUpdateView)
-    bpy.utils.unregister_class(BURemoveAll)
-    bpy.utils.unregister_class(BURemoveEmpty)
     bpy.utils.unregister_class(BURemoveUnusedActions)
+    bpy.utils.unregister_class(BURemoveEmpty)
+    bpy.utils.unregister_class(BURemoveAll)
+
     bpy.utils.unregister_class(BUToggleLang)
     bpy.utils.unregister_class(BUToggleTimelineAction)
     bpy.utils.unregister_class(BUToggleBoneMode)
     bpy.utils.unregister_class(BUToggleWeightMode)
     bpy.utils.unregister_class(BUToggleScreenshotMode)
+
+    bpy.utils.unregister_class(BUClearAllVertexGroups)
+    bpy.utils.unregister_class(BUTransferVertexGroups)
+
     bpy.utils.unregister_class(BUToggleRest)
     bpy.utils.unregister_class(BUResetPose)
     bpy.utils.unregister_class(BUCopyPose)
