@@ -15,6 +15,19 @@ from .bu import (
 )
 
 
+def get_source_target_from_selected(context: bpy.types.Context, obj_type: str):
+    """Get a source and a target object from the current selection.
+    The active object (typically the last one selected) is the target,
+    and the other selected object of the same type is the source.
+    """
+    target: bpy.types.Object = context.object
+    assert target is not None and target.type == obj_type, f"The active object must be a {obj_type}"
+    selected_others = [obj for obj in context.selected_objects if obj.type == obj_type and obj != target]
+    assert len(selected_others) == 1, f"Please also select the source {obj_type}"
+    source = selected_others[0]
+    return source, target
+
+
 class BUShowImport(bpy.types.Operator):
     """Show code for importing the helper module `bu` in console/script"""
 
@@ -265,10 +278,7 @@ class BUTransferVertexGroups(bpy.types.Operator):
         )
 
     def execute(self, context):
-        target_mesh = context.object
-        selected_meshes = [obj for obj in context.selected_objects if obj.type == "MESH" and obj != target_mesh]
-        assert len(selected_meshes) == 1, "Please select exactly two Meshes"
-        source_mesh = selected_meshes[0]
+        source_mesh, target_mesh = get_source_target_from_selected(context, "MESH")
         context.view_layer.objects.active = source_mesh
         select_objs([target_mesh], deselect_first=True)
 
@@ -327,10 +337,7 @@ class BUTransferShapeKeys(bpy.types.Operator):
         )
 
     def execute(self, context):
-        target_mesh = context.object
-        selected_meshes = [obj for obj in context.selected_objects if obj.type == "MESH" and obj != target_mesh]
-        assert len(selected_meshes) == 1, "Please select exactly two Meshes"
-        source_mesh = selected_meshes[0]
+        source_mesh, target_mesh = get_source_target_from_selected(context, "MESH")
 
         transfer_all_shape_keys(source_mesh, target_mesh, clear_existing=True)
 
@@ -399,12 +406,7 @@ class BUCopyPose(bpy.types.Operator):
         )
 
     def execute(self, context):
-        target_armature = context.object
-        selected_armatures = [
-            obj for obj in context.selected_objects if obj.type == "ARMATURE" and obj != target_armature
-        ]
-        assert len(selected_armatures) == 1, "Please select exactly two Armatures"
-        source_armature = selected_armatures[0]
+        source_armature, target_armature = get_source_target_from_selected(context, "ARMATURE")
 
         with Mode("POSE", source_armature):
             for b in source_armature.data.bones:
