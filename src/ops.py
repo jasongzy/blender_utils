@@ -10,6 +10,7 @@ from .bu import (
     remove_unused_actions,
     select_objs,
     set_rest_bones,
+    transfer_all_shape_keys,
     update,
 )
 
@@ -291,6 +292,55 @@ class BUTransferVertexGroups(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BUClearAllShapeKeys(bpy.types.Operator):
+    """Clear all shape keys (select the target Mesh first)"""
+
+    bl_idname = "bu.clear_all_shapekeys"
+    bl_label = "Clear All Shape Keys"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None and context.object.type == "MESH" and context.area.ui_type == "VIEW_3D"
+
+    def execute(self, context):
+        obj = context.object
+        obj.shape_key_clear()
+        self.report({"INFO"}, f"Cleared all shape keys from `{obj.name}`")
+        return {"FINISHED"}
+
+
+class BUTransferShapeKeys(bpy.types.Operator):
+    """Transfer shape keys from one Mesh to another"""
+
+    bl_idname = "bu.transfer_shapekeys"
+    bl_label = "Transfer Shape Keys"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.object is not None
+            and context.object.type == "MESH"
+            and context.area.ui_type == "VIEW_3D"
+            and len(get_all_mesh_obj(context.selected_objects)) == 2
+        )
+
+    def execute(self, context):
+        target_mesh = context.object
+        selected_meshes = [obj for obj in context.selected_objects if obj.type == "MESH" and obj != target_mesh]
+        assert len(selected_meshes) == 1, "Please select exactly two Meshes"
+        source_mesh = selected_meshes[0]
+
+        transfer_all_shape_keys(source_mesh, target_mesh, clear_existing=True)
+
+        update(context)
+        context.view_layer.objects.active = target_mesh
+        select_objs([target_mesh], deselect_first=True)
+        self.report({"INFO"}, f"Transferred shape keys from `{source_mesh.name}` to `{target_mesh.name}`")
+        return {"FINISHED"}
+
+
 class BUToggleRest(bpy.types.Operator):
     """Toggle rest/pose position (select the target Armature first)"""
 
@@ -430,6 +480,8 @@ def register():
 
     bpy.utils.register_class(BUClearAllVertexGroups)
     bpy.utils.register_class(BUTransferVertexGroups)
+    bpy.utils.register_class(BUClearAllShapeKeys)
+    bpy.utils.register_class(BUTransferShapeKeys)
 
     bpy.utils.register_class(BUToggleRest)
     bpy.utils.register_class(BUResetPose)
@@ -453,6 +505,8 @@ def unregister():
 
     bpy.utils.unregister_class(BUClearAllVertexGroups)
     bpy.utils.unregister_class(BUTransferVertexGroups)
+    bpy.utils.unregister_class(BUClearAllShapeKeys)
+    bpy.utils.unregister_class(BUTransferShapeKeys)
 
     bpy.utils.unregister_class(BUToggleRest)
     bpy.utils.unregister_class(BUResetPose)

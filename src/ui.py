@@ -73,7 +73,11 @@ class MeshPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("bu.clear_all_vgroups", icon="VERTEXSEL")
         row = layout.row()
-        row.operator("bu.transfer_vgroups", icon="AUTOMERGE_ON")
+        row.operator("bu.transfer_vgroups", icon="MOD_DATA_TRANSFER")
+        row = layout.row()
+        row.operator("bu.clear_all_shapekeys", icon="SHAPEKEY_DATA")
+        row = layout.row()
+        row.operator("bu.transfer_shapekeys", icon="AUTOMERGE_ON")
 
 
 class PosePanel(bpy.types.Panel):
