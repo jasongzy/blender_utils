@@ -382,8 +382,12 @@ class BUResetPose(bpy.types.Operator):
 
     def execute(self, context):
         with Mode("POSE", context.object):
-            for b in context.object.data.bones:
-                b.select = True
+            try:
+                for b in context.object.data.bones:
+                    b.select = True
+            except AttributeError:  # blender>=5.0
+                for b in context.object.pose.bones:
+                    b.select = True
             bpy.ops.pose.transforms_clear()
         self.report({"INFO"}, f"Reset pose to rest for `{context.object.name}`")
         return {"FINISHED"}
@@ -409,12 +413,20 @@ class BUCopyPose(bpy.types.Operator):
         source_armature, target_armature = get_source_target_from_selected(context, "ARMATURE")
 
         with Mode("POSE", source_armature):
-            for b in source_armature.data.bones:
-                b.select = True
+            try:
+                for b in source_armature.data.bones:
+                    b.select = True
+            except AttributeError:  # blender>=5.0
+                for b in source_armature.pose.bones:
+                    b.select = True
             bpy.ops.pose.copy()
         with Mode("POSE", target_armature):
-            for b in target_armature.data.bones:
-                b.select = True
+            try:
+                for b in target_armature.data.bones:
+                    b.select = True
+            except AttributeError:  # blender>=5.0
+                for b in target_armature.pose.bones:
+                    b.select = True
             bpy.ops.pose.paste(flipped=False)
 
         update(context)
